@@ -22,6 +22,8 @@ for feature in features:
         print(f"Failed to fetch {feature}, status code: {response.status_code}")
 
 
+# Get Mana Symbols
+
 # Scryfall API endpoint for mana symbols
 url = "https://api.scryfall.com/symbology"
 
@@ -29,15 +31,8 @@ url = "https://api.scryfall.com/symbology"
 response = requests.get(url)
 data = response.json()
 
-# Extract only the relevant symbols that are not "funny"
-valid_mana_symbols = [
-    symbol["symbol"]
-    for symbol in data["data"]
-    if symbol["represents_mana"] and not symbol.get("funny", False)
-]
 
-# Print or save the results
-print(valid_mana_symbols)
+
 filename = f"Data\ManaSymbols.json"
 with open(filename, "w", encoding="utf-8") as file:
     json.dump(data, file, indent=4)
