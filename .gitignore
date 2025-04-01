@@ -1,0 +1,5 @@
+/Data
+/venv
+.env
+.json
+upload.py
