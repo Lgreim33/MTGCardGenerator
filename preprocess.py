@@ -4,6 +4,23 @@ import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier, XGBRegressor
 
+
+def get_mana_symbols():
+
+    fp = open("Data\ManaSymbols.json")
+
+    data = json.load(fp)
+    
+
+    # Extract only the relevant symbols that are not "funny"
+    valid_mana_symbols = [
+        symbol["symbol"]
+        for symbol in data["data"]
+        if symbol["represents_mana"] and not symbol.get("funny", False)
+    ]        
+    print(valid_mana_symbols)
+
+
 # Helper function to get all possible subtypes, retruns a dictionary of {Subtype: Index}
 def all_subtypes():
     subtypes = set()
@@ -21,6 +38,8 @@ def pre_process(card_list):
 
     # Get subtype dict
     subtypes = all_subtypes()
+
+    mana = get_mana_symbols()
    
     # Dictionary where the type matches the index at which the type can be represented by a one
     desired_types = {'Enchantment':0,'Artifact':1,'Creature':2,'Instant':3,'Sorcery':4}
@@ -55,7 +74,7 @@ card_dataset = dict()
 # Helper function to split type_line into components
 def split_type_line(type_line):
     # Check if 'Legendary' is part of the type line
-    legendary = 'Legendary' in type_line
+    legendary = 1 if 'Legendary' in type_line else 0
     
     # Split by ' — ' to separate the types and subtypes
     parts = type_line.split(' — ')
