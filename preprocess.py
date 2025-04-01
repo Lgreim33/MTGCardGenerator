@@ -4,11 +4,40 @@ import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier, XGBRegressor
 
+# Helper function to get all possible subtypes, retruns a dictionary of {Subtype: Index}
+def all_subtypes():
+    subtypes = set()
+    # Read each file
+    for file in os.listdir("Data\Types"):
+        fp = open(f"Data\Types\{file}")
+        file = json.load(fp)
+        # Add each type to the set 
+        for type in file['data']:
+            subtypes.add(type)
+
+    # Return dictionary of {Subtype: Index}
+    return {element: index for index, element in enumerate(subtypes)}
 def pre_process(card_list):
+
+    # Get subtype dict
+    subtypes = all_subtypes()
+   
+    # Dictionary where the type matches the index at which the type can be represented by a one
+    desired_types = {'Enchantment':0,'Artifact':1,'Creature':2,'Instant':3,'Sorcery':4}
     for card in card_list:
+        type_vector = np.zeros(5)
+        subtype_vector = np.zeros(len(subtypes))
+        for type in card['types']:
+            
+            type_vector[desired_types[type]] = 1
+        
+        for type in card['subtypes']:
+            
+            subtype_vector[subtypes[type]] = 1
 
 
-        return
+        # Just return this for now for testing
+        return type_vector, subtype_vector
         
 
     
@@ -56,5 +85,10 @@ print(len(card_dataset))
 
 # Test
 print(card_dataset['Sliver Hivelord'])
+
+type_vector, subtype_vector = pre_process([card_dataset['Copper Myr']])
+
+print(type_vector)
+print(subtype_vector)
 
 
