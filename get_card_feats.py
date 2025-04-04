@@ -13,7 +13,7 @@ for feature in features:
         data = response.json()
         
         # Save each response in its own JSON file
-        filename = f"Data\{feature}.json"
+        filename = f"Data\Types\{feature}.json"
         with open(filename, "w", encoding="utf-8") as file:
             json.dump(data, file, indent=4)
         
@@ -25,10 +25,10 @@ for feature in features:
 # Get Mana Symbols
 
 # Scryfall API endpoint for mana symbols
-url = "https://api.scryfall.com/symbology"
+url_mana = "https://api.scryfall.com/symbology"
 
 # Fetch data from Scryfall
-response = requests.get(url)
+response = requests.get(url_mana)
 data = response.json()
 
 
@@ -36,3 +36,29 @@ data = response.json()
 filename = f"Data\ManaSymbols.json"
 with open(filename, "w", encoding="utf-8") as file:
     json.dump(data, file, indent=4)
+
+
+url_toughness = "https://api.scryfall.com/catalog/toughnesses"
+
+
+# Fetch data from Scryfall
+response = requests.get(url_toughness)
+data = response.json()
+
+
+
+filename = f"Data\ToughnessSymbols.json"
+with open(filename, "w", encoding="utf-8") as file:
+    json.dump(data, file, indent=4)
+
+url_powers = "https://api.scryfall.com/catalog/powers"
+
+# Fetch data from Scryfall
+response = requests.get(url_toughness)
+data = response.json()
+
+filename = f"Data\PowerSymbols.json"
+with open(filename, "w", encoding="utf-8") as file:
+    json.dump(data, file, indent=4)
+
+

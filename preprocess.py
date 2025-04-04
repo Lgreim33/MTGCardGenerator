@@ -3,6 +3,7 @@ import json
 import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier, XGBRegressor
+import re
 
 
 def get_mana_symbols():
@@ -12,25 +13,44 @@ def get_mana_symbols():
     data = json.load(fp)
     
 
-    # Extract only the relevant symbols that are not "funny"
+    # Extract only the relevant symbols that are not "funny" this would indicate that the card is from an "un" set
     valid_mana_symbols = [
         symbol["symbol"]
         for symbol in data["data"]
-        if symbol["represents_mana"] and not symbol.get("funny", False)
+        if symbol["represents_mana"]
     ]        
-    print(valid_mana_symbols)
+    return {element: index for index, element in enumerate(valid_mana_symbols)}
 
+def get_types():
+    fp = open("Data\keyword-abilities.json")
+    data = json.load(fp)
+    keywords = data['data']
+
+    return {element: index for index, element in enumerate(keywords)}
+
+def get_power_symbols():
+
+
+    return
+
+def get_toughness_symbols():
+
+
+    return
 
 # Helper function to get all possible subtypes, retruns a dictionary of {Subtype: Index}
 def all_subtypes():
-    subtypes = set()
+    subtypes = list()
     # Read each file
     for file in os.listdir("Data\Types"):
         fp = open(f"Data\Types\{file}")
         file = json.load(fp)
         # Add each type to the set 
-        for type in file['data']:
-            subtypes.add(type)
+        try:
+            for type in file['data']:
+                subtypes.append(type)
+        except KeyError:
+            continue
 
     # Return dictionary of {Subtype: Index}
     return {element: index for index, element in enumerate(subtypes)}
@@ -42,26 +62,37 @@ def pre_process(card_list):
     mana = get_mana_symbols()
    
     # Dictionary where the type matches the index at which the type can be represented by a one
-    desired_types = {'Enchantment':0,'Artifact':1,'Creature':2,'Instant':3,'Sorcery':4}
+    desired_types = {'Enchantment':0,'Artifact':1,'Creature':2,'Instant':3,'Sorcery':4 , 'Kindred':5}
     for card in card_list:
-        type_vector = np.zeros(5)
-        subtype_vector = np.zeros(len(subtypes))
+        type_vector = []
+        subtype_vector = []
+        mana_vector = []
         for type in card['types']:
+
+            try:
             
-            type_vector[desired_types[type]] = 1
-        
+                type_vector.append(desired_types[type])
+            except KeyError:
+                continue
         for type in card['subtypes']:
-            
-            subtype_vector[subtypes[type]] = 1
+            try:
+                subtype_vector.append(subtypes[type])
+            except KeyError:
+                continue
+        # Mana cost is represented as a string, so we should transform it into a list
+        mana_cost = re.findall(r'\{[^}]+\}', card['mana_cost'])
+        for cost in mana_cost:
+            mana_vector.append(mana[cost])
+
 
 
         # Just return this for now for testing
-        return type_vector, subtype_vector
+        return np.array(type_vector), np.array(subtype_vector), np.array(mana_vector)
         
 
     
 # While a card can be a couple of these types at once, we only care that the card is AT MOST these types
-desired_types = ['Enchantment','Artifact','Creature','Instant','Sorcery']
+desired_types = ['Enchantment','Artifact','Creature','Instant','Sorcery','Kindred']
 
 fp = open("Data\scryfall_bulk_data.json")
 file = json.load(fp)
@@ -85,29 +116,41 @@ def split_type_line(type_line):
 
 # Iterate through bulk data
 for card in file:
-    # If the card is of a desired type, get its desired features
-    if 'type_line' in card and any(t in card['type_line'] for t in desired_types):
+    # If the card is of a desired type, get its features
+    if 'type_line' in card: 
         # Split the type_line into Legendary, Types, and Subtypes
         legendary, types, subtypes = split_type_line(card['type_line'])
         
-        # Add to the dataset
-        card_dataset[card['name']] = {
-            **{feature: card.get(feature, None) for feature in features if not feature =='type_line'},  # Add other features, besides type_line
-            'legendary': legendary,  
-            'types': types,          
-            'subtypes': subtypes     
-        }
-        
+        if set(types).issubset(set(desired_types)) and "//" not in card['name']:
+
+            # Add to the dataset
+            card_dataset[card['name']] = {
+                **{feature: card.get(feature, None) for feature in features if not feature =='type_line'},  # Add other features, besides type_line
+                'legendary': legendary,  
+                'types': types,          
+                'subtypes': subtypes     
+            }
+            
             
 # Print Size of dataset
 print(len(card_dataset))
 
 # Test
-print(card_dataset['Sliver Hivelord'])
+print(card_dataset['All Will Be One'])
+i = 0
+for card in card_dataset:
 
-type_vector, subtype_vector = pre_process([card_dataset['Copper Myr']])
+    try:
+        type_vector, subtype_vector, mana_vector = pre_process([card_dataset[card]])
+        #print(card)
+        i+=1
 
-print(type_vector)
-print(subtype_vector)
+    except Exception:
+        continue
+
+print(i)
+#print(type_vector)
+#print(subtype_vector)
+#print(mana_vector)
 
 
