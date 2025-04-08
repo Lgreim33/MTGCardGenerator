@@ -21,7 +21,8 @@ def get_mana_symbols():
     ]        
     return {element: index for index, element in enumerate(valid_mana_symbols)}
 
-def get_types():
+
+def get_keywords():
     fp = open("Data\keyword-abilities.json")
     data = json.load(fp)
     keywords = data['data']
@@ -29,14 +30,18 @@ def get_types():
     return {element: index for index, element in enumerate(keywords)}
 
 def get_power_symbols():
+    fp = open("Data\PowerSymbols.json")
+    data = json.load(fp)
+    powers = data['data']
 
-
-    return
+    return {element: index for index, element in enumerate(powers)}
 
 def get_toughness_symbols():
+    fp = open("Data\ToughnessSymbols.json")
+    data = json.load(fp)
+    toughness = data['data']
 
-
-    return
+    return {element: index for index, element in enumerate(toughness)}
 
 # Helper function to get all possible subtypes, retruns a dictionary of {Subtype: Index}
 def all_subtypes():
