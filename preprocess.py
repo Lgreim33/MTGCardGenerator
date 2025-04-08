@@ -61,17 +61,24 @@ def all_subtypes():
     return {element: index for index, element in enumerate(subtypes)}
 def pre_process(card_list):
 
-    # Get subtype dict
+    # Get all feature dicts
     subtypes = all_subtypes()
-
-    mana = get_mana_symbols()
-   
+    mana_symbol_dict = get_mana_symbols()
+    powers_dict = get_power_symbols()
+    toughness_dict = get_toughness_symbols()
+    keywords_dict = get_keywords()
+    
+    
     # Dictionary where the type matches the index at which the type can be represented by a one
     desired_types = {'Enchantment':0,'Artifact':1,'Creature':2,'Instant':3,'Sorcery':4 , 'Kindred':5}
     for card in card_list:
         type_vector = []
         subtype_vector = []
         mana_vector = []
+        keyword_vector = []
+        power_value = None
+        toughness_value = None
+        
         for type in card['types']:
 
             try:
@@ -87,7 +94,25 @@ def pre_process(card_list):
         # Mana cost is represented as a string, so we should transform it into a list
         mana_cost = re.findall(r'\{[^}]+\}', card['mana_cost'])
         for cost in mana_cost:
-            mana_vector.append(mana[cost])
+            mana_vector.append(mana_symbol_dict[cost])
+        
+        for keyword in card['keywords']:
+            keyword_vector.append(keywords_dict[keyword])
+            
+        # Cards may or may not have a power and toughness value, if we get a key error, assume there is none    
+        try:
+            power_value = powers_dict[card['power']]
+        except Exception:
+            continue
+        
+        try:
+            toughness_value = toughness_dict[card['toughness']]
+        except Exception:
+            continue
+        
+            
+            
+        
 
 
 
@@ -103,7 +128,7 @@ fp = open("Data\scryfall_bulk_data.json")
 file = json.load(fp)
 
 # Features we care about (We might include flavor text for fun)
-features = ['name','colors', 'color_identity', 'keywords', 'mana_cost','cmc','type_line','oracle_text','power','toughness']
+features = ['name', 'color_identity', 'keywords', 'mana_cost','type_line','oracle_text','power','toughness']
 card_dataset = dict()
 
 
