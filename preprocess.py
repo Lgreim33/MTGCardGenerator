@@ -1,9 +1,9 @@
 import os
 import json
 import pandas as pd
-import numpy as np
 from xgboost import XGBClassifier, XGBRegressor
 import re
+import pickle
 
 
 def get_mana_symbols():
@@ -18,8 +18,15 @@ def get_mana_symbols():
         symbol["symbol"]
         for symbol in data["data"]
         if symbol["represents_mana"]
-    ]        
-    return {element: index for index, element in enumerate(valid_mana_symbols)}
+    ]
+
+    dict = {element: index for index, element in enumerate(valid_mana_symbols)}
+
+
+    with open("ManaSymbolDict.pickle", "wb") as file:
+        pickle.dump(dict, file)
+
+    return dict
 
 
 def get_keywords():
@@ -31,21 +38,37 @@ def get_keywords():
     data_aw = json.load(fp_aw)
     keywords = data_ab['data'] + data_ac['data'] + data_aw['data']
 
-    return {element: index for index, element in enumerate(keywords)}
+    dict = {element: index for index, element in enumerate(keywords)}
+
+    with open("KeywordDict.pickle", "wb") as file:
+        pickle.dump(dict, file)
+
+
+    return dict
 
 def get_power_symbols():
     fp = open("Data\PowerSymbols.json")
     data = json.load(fp)
     powers = data['data']
 
-    return {element: index for index, element in enumerate(powers)}
+    dict = {element: index for index, element in enumerate(powers)}
+
+    with open("PowerSymbolDict.pickle", "wb") as file:
+        pickle.dump(dict, file)
+
+    return dict
 
 def get_toughness_symbols():
     fp = open("Data\ToughnessSymbols.json")
     data = json.load(fp)
     toughness = data['data']
 
-    return {element: index for index, element in enumerate(toughness)}
+    dict = {element: index for index, element in enumerate(toughness)}
+
+    with open("ToughnessSymbolDict.pickle", "wb") as file:
+        pickle.dump(dict, file)
+
+    return dict
 
 # Helper function to get all possible subtypes, retruns a dictionary of {Subtype: Index}
 def all_subtypes():
@@ -61,8 +84,13 @@ def all_subtypes():
         except KeyError:
             continue
 
+    dict = {element: index for index, element in enumerate(subtypes)}
+
+    with open("SubtypeDict.pickle", "wb") as file:
+        pickle.dump(dict, file)
+
     # Return dictionary of {Subtype: Index}
-    return {element: index for index, element in enumerate(subtypes)}
+    return dict
 def pre_process(card_list):
     # Initialize dictionaries and constants
     subtypes = all_subtypes()
@@ -74,6 +102,12 @@ def pre_process(card_list):
     # Dictionary where the type matches the index at which the type can be represented by a one
     desired_types = {'Enchantment':0, 'Artifact':1, 'Creature':2, 'Instant':3, 'Sorcery':4, 'Kindred':5}
     color_identity_dict = {'W':0, 'U':1, 'B':2, 'R':3, 'G':4}
+
+    with open("TypeDict.pickle", "wb") as file:
+        pickle.dump(desired_types, file)
+    
+    with open("ColorDict.pickle", "wb") as file:
+        pickle.dump(color_identity_dict, file)
     
     # Initialize lists to store the processed features for each card
     all_type_vectors = []
@@ -85,6 +119,7 @@ def pre_process(card_list):
     all_toughness_values = []
     all_supertype_values = []  # List for supertype values (e.g., legendary)
     all_names = []
+    all_rules = []
 
     
     # Process each card
@@ -160,6 +195,7 @@ def pre_process(card_list):
             all_toughness_values.append(toughness_value)
             all_supertype_values.append(supertype_value)
             all_names.append(card['name'])
+            all_rules.append(card['oracle_text'])
 
 
         except Exception as e:
@@ -191,7 +227,8 @@ def pre_process(card_list):
         'keyword_vector': padded_keyword_vectors,
         'power_value': all_power_values,
         'toughness_value': all_toughness_values,
-        'supertype_value': all_supertype_values  
+        'supertype_value': all_supertype_values,
+        'rules_text' : all_rules   
     })
     
     return df
@@ -254,3 +291,5 @@ print(card_dataframe.head(5))
 
 print(card_dataframe['type_vector'].value_counts())
 
+# Save the dataframe
+card_dataframe.to_pickle('card_dataframe.pkl')
