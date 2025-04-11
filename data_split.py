@@ -1,7 +1,7 @@
 import pickle
 import pandas as pd
 from sklearn.model_selection import train_test_split
-
+from xgboost import XGBClassifier, XGBModel
 
 with open("card_dataframe.pkl","rb") as file:
     card_dataframe = pd.DataFrame(pickle.load(file))
@@ -34,6 +34,10 @@ print(card_dataframe['power_value'].value_counts())
 print("Toughness:")
 print(card_dataframe['toughness_value'].value_counts())
 
+
+print("Description of Data:")
+print(card_dataframe['power_value'].describe())
+
 def split_for_feature_coverage(df, feature_col, test_size=0.2, random_state=42):
     # Step 1: Flatten the feature into individual values with index mapping
     value_to_index = {}
@@ -59,9 +63,18 @@ def split_for_feature_coverage(df, feature_col, test_size=0.2, random_state=42):
 
     return df_train, df_test
 
+# We want classification to be agnostic to the name and text
+textless = card_dataframe.loc[:, (card_dataframe.columns != 'name')]
+textless = textless.loc[:, (textless.columns != 'rules_text')]
 
-color_id_train, color_id_test = split_for_feature_coverage(card_dataframe,'color_identity',test_size=.2)
+
+color_id_train, color_id_test = split_for_feature_coverage(textless,'color_identity',test_size=.2)
 
 
 
 print(len(color_id_train['color_identity'].value_counts()))
+
+
+model = XGBClassifier(enable_categorical=True)
+
+model.fit(color_id_train.loc[:, color_id_train.columns != 'color_identity'],range(32))
