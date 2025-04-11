@@ -1,7 +1,7 @@
 import requests
 import json
 
-features = ['card-types', 'artifact-types', 'creature-types','enchantment-types','spell-types','supertypes','keyword-abilities']
+features = ['card-types', 'artifact-types', 'creature-types','enchantment-types','spell-types','supertypes','keyword-abilities' ,'keyword-actions','ability-words']
 data_dict = {}
 
 modular_request = "https://api.scryfall.com/catalog/"
@@ -60,5 +60,7 @@ data = response.json()
 filename = f"Data\PowerSymbols.json"
 with open(filename, "w", encoding="utf-8") as file:
     json.dump(data, file, indent=4)
+
+
 
 
