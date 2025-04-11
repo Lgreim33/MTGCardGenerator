@@ -23,9 +23,13 @@ def get_mana_symbols():
 
 
 def get_keywords():
-    fp = open("Data\keyword-abilities.json")
-    data = json.load(fp)
-    keywords = data['data']
+    fp_ab = open(r"Data\Types\keyword-abilities.json")
+    fp_ac = open(r"Data\Types\keyword-actions.json")
+    fp_aw = open(r"Data\Types\ability-words.json")
+    data_ab = json.load(fp_ab)
+    data_ac = json.load(fp_ac)
+    data_aw = json.load(fp_aw)
+    keywords = data_ab['data'] + data_ac['data'] + data_aw['data']
 
     return {element: index for index, element in enumerate(keywords)}
 
@@ -60,17 +64,30 @@ def all_subtypes():
     # Return dictionary of {Subtype: Index}
     return {element: index for index, element in enumerate(subtypes)}
 def pre_process(card_list):
-
-    # Get all feature dicts
+    # Initialize dictionaries and constants
     subtypes = all_subtypes()
     mana_symbol_dict = get_mana_symbols()
     powers_dict = get_power_symbols()
     toughness_dict = get_toughness_symbols()
     keywords_dict = get_keywords()
     
-    
     # Dictionary where the type matches the index at which the type can be represented by a one
-    desired_types = {'Enchantment':0,'Artifact':1,'Creature':2,'Instant':3,'Sorcery':4 , 'Kindred':5}
+    desired_types = {'Enchantment':0, 'Artifact':1, 'Creature':2, 'Instant':3, 'Sorcery':4, 'Kindred':5}
+    color_identity_dict = {'W':0, 'U':1, 'B':2, 'R':3, 'G':4}
+    
+    # Initialize lists to store the processed features for each card
+    all_type_vectors = []
+    all_subtype_vectors = []
+    all_color_id_vecs = []
+    all_mana_vectors = []
+    all_keyword_vectors = []
+    all_power_values = []
+    all_toughness_values = []
+    all_supertype_values = []  # List for supertype values (e.g., legendary)
+    all_names = []
+
+    
+    # Process each card
     for card in card_list:
         type_vector = []
         subtype_vector = []
@@ -78,46 +95,106 @@ def pre_process(card_list):
         keyword_vector = []
         power_value = None
         toughness_value = None
-        
-        for type in card['types']:
+        color_id_vec = [0 for _ in range(5)]
+        supertype_value = None  # Initialize supertype_value to None
+
+        try:
+            # Process card types
+            for type in card['types']:
+                try:
+                    type_vector.append(desired_types[type])
+                except KeyError:
+                    continue
+
+            # Process card subtypes
+            for type in card['subtypes']:
+                try:
+                    subtype_vector.append(subtypes[type])
+                except KeyError:
+                    continue
+
+            # Process legendary supertype (optional)
+            supertype_value = card.get('legendary', None)  # Using .get() to safely fetch 'legendary'
+
+            # Process mana cost
+            mana_cost = re.findall(r'\{[^}]+\}', card['mana_cost'])
+            for cost in mana_cost:
+                try:
+                    mana_vector.append(mana_symbol_dict[cost])
+                except KeyError:
+                    continue
+
+            # Process keywords
+            for keyword in card['keywords']:
+                try:
+                    keyword_vector.append(keywords_dict[keyword])
+                except KeyError:
+                    continue
+
+            # Process color identity (optional field, so no need to handle exception)
+            for color in card['color_identity']:
+                try:
+                    color_id_vec[color_identity_dict[color]] = 1
+                except KeyError:
+                    continue
+
+            # Process power and toughness (optional, can be None)
+            try:
+                power_value = powers_dict[card['power']]
+            except KeyError:
+                power_value = None
 
             try:
-            
-                type_vector.append(desired_types[type])
+                toughness_value = toughness_dict[card['toughness']]
             except KeyError:
-                continue
-        for type in card['subtypes']:
-            try:
-                subtype_vector.append(subtypes[type])
-            except KeyError:
-                continue
-        # Mana cost is represented as a string, so we should transform it into a list
-        mana_cost = re.findall(r'\{[^}]+\}', card['mana_cost'])
-        for cost in mana_cost:
-            mana_vector.append(mana_symbol_dict[cost])
-        
-        for keyword in card['keywords']:
-            keyword_vector.append(keywords_dict[keyword])
-            
-        # Cards may or may not have a power and toughness value, if we get a key error, assume there is none    
-        try:
-            power_value = powers_dict[card['power']]
-        except Exception:
+                toughness_value = None
+
+
+            # Append all processed values (as tuples for hashability)
+            all_type_vectors.append(tuple(type_vector))
+            all_subtype_vectors.append(tuple(subtype_vector))
+            all_color_id_vecs.append(tuple(color_id_vec))
+            all_mana_vectors.append(tuple(mana_vector))
+            all_keyword_vectors.append(tuple(keyword_vector))
+            all_power_values.append(power_value)
+            all_toughness_values.append(toughness_value)
+            all_supertype_values.append(supertype_value)
+            all_names.append(card['name'])
+
+
+        except Exception as e:
+            print(f"Skipping card {card.get('name', '<unknown>')} due to error: {e}")
             continue
-        
-        try:
-            toughness_value = toughness_dict[card['toughness']]
-        except Exception:
-            continue
-        
-            
-            
-        
 
+    # Padding function — returns tuple for hashability
+    def pad_features(features, max_len):
+        return [tuple(f + (0,) * (max_len - len(f))) if len(f) < max_len else tuple(f[:max_len]) for f in features]
 
+    # Determine max lengths and pad
+    max_type_len = max(len(v) for v in all_type_vectors)
+    max_subtype_len = max(len(v) for v in all_subtype_vectors)
+    max_mana_len = max(len(v) for v in all_mana_vectors)
+    max_keyword_len = max(len(v) for v in all_keyword_vectors)
 
-        # Just return this for now for testing
-        return np.array(type_vector), np.array(subtype_vector), np.array(mana_vector)
+    padded_type_vectors = pad_features(all_type_vectors, max_type_len)
+    padded_subtype_vectors = pad_features(all_subtype_vectors, max_subtype_len)
+    padded_mana_vectors = pad_features(all_mana_vectors, max_mana_len)
+    padded_keyword_vectors = pad_features(all_keyword_vectors, max_keyword_len)
+    
+    # Create a DataFrame from the processed data
+    df = pd.DataFrame({
+        'name': all_names,
+        'type_vector': tuple(padded_type_vectors),
+        'subtype_vector': padded_subtype_vectors,
+        'color_identity': all_color_id_vecs,
+        'mana_vector': padded_mana_vectors,
+        'keyword_vector': padded_keyword_vectors,
+        'power_value': all_power_values,
+        'toughness_value': all_toughness_values,
+        'supertype_value': all_supertype_values  
+    })
+    
+    return df
         
 
     
@@ -167,20 +244,13 @@ print(len(card_dataset))
 
 # Test
 print(card_dataset['All Will Be One'])
-i = 0
-for card in card_dataset:
 
-    try:
-        type_vector, subtype_vector, mana_vector = pre_process([card_dataset[card]])
-        #print(card)
-        i+=1
 
-    except Exception:
-        continue
+card_dataframe = pre_process(card_dataset.values())
 
-print(i)
-#print(type_vector)
-#print(subtype_vector)
-#print(mana_vector)
 
+
+print(card_dataframe.head(5))
+
+print(card_dataframe['type_vector'].value_counts())
 
