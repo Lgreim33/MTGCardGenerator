@@ -5,7 +5,7 @@ from xgboost import XGBClassifier, XGBRegressor
 import re
 import pickle
 
-
+# Gets a dictionary of different mana symbols for easy matching during processing
 def get_mana_symbols():
 
     fp = open("Data\ManaSymbols.json")
@@ -22,13 +22,13 @@ def get_mana_symbols():
 
     dict = {element: index for index, element in enumerate(valid_mana_symbols)}
 
-
-    with open("ManaSymbolDict.pickle", "wb") as file:
+    # Save dictionary
+    with open(r"Dictionaries\ManaSymbolDict.pickle", "wb") as file:
         pickle.dump(dict, file)
 
     return dict
 
-
+# Get as many possible keywords as we can and store them as a dictionaru
 def get_keywords():
     fp_ab = open(r"Data\Types\keyword-abilities.json")
     fp_ac = open(r"Data\Types\keyword-actions.json")
@@ -40,12 +40,13 @@ def get_keywords():
 
     dict = {element: index for index, element in enumerate(keywords)}
 
-    with open("KeywordDict.pickle", "wb") as file:
+    # save the dictionary
+    with open(r"Dictionaries\KeywordDict.pickle", "wb") as file:
         pickle.dump(dict, file)
-
 
     return dict
 
+# Get all possible power symbols and save them in a Dictionary, returns the dict
 def get_power_symbols():
     fp = open("Data\PowerSymbols.json")
     data = json.load(fp)
@@ -53,11 +54,12 @@ def get_power_symbols():
 
     dict = {element: index for index, element in enumerate(powers)}
 
-    with open("PowerSymbolDict.pickle", "wb") as file:
+    # Save the dictionary
+    with open(r"Dictionaries\PowerSymbolDict.pickle", "wb") as file:
         pickle.dump(dict, file)
 
     return dict
-
+# Get all possible toughness symbols and save them in a Dictionary, returns the dict
 def get_toughness_symbols():
     fp = open("Data\ToughnessSymbols.json")
     data = json.load(fp)
@@ -65,7 +67,8 @@ def get_toughness_symbols():
 
     dict = {element: index for index, element in enumerate(toughness)}
 
-    with open("ToughnessSymbolDict.pickle", "wb") as file:
+    # Save the dictionary
+    with open(r"Dictionaries\ToughnessSymbolDict.pickle", "wb") as file:
         pickle.dump(dict, file)
 
     return dict
@@ -86,7 +89,8 @@ def all_subtypes():
 
     dict = {element: index for index, element in enumerate(subtypes)}
 
-    with open("SubtypeDict.pickle", "wb") as file:
+    # Save the dictionary
+    with open(r"Dictionaries\SubtypeDict.pickle", "wb") as file:
         pickle.dump(dict, file)
 
     # Return dictionary of {Subtype: Index}
@@ -103,10 +107,10 @@ def pre_process(card_list):
     desired_types = {'Enchantment':0, 'Artifact':1, 'Creature':2, 'Instant':3, 'Sorcery':4, 'Kindred':5}
     color_identity_dict = {'W':0, 'U':1, 'B':2, 'R':3, 'G':4}
 
-    with open("TypeDict.pickle", "wb") as file:
+    with open(r"Dictionaries\TypeDict.pickle", "wb") as file:
         pickle.dump(desired_types, file)
     
-    with open("ColorDict.pickle", "wb") as file:
+    with open(r"Dictionaries\ColorDict.pickle", "wb") as file:
         pickle.dump(color_identity_dict, file)
     
     # Initialize lists to store the processed features for each card
