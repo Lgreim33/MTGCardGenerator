@@ -1,6 +1,8 @@
 import pickle
 import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import log_loss
 from xgboost import XGBClassifier, XGBModel, DMatrix
 
 
@@ -28,6 +30,8 @@ keyword_vector
 '''
 
 
+'''
+# uncomment this to get a look at the data distribution, commented out to avoid bulky terminal prints at each run
 
 # View the data split
 print("Types:")
@@ -55,27 +59,21 @@ print(card_dataframe['toughness_value'].value_counts())
 print("Description of Data:")
 print(card_dataframe['power_value'].describe())
 
+'''
+# Split the data in such a way that we get at least one example of all possible classes 
 def split_for_feature_coverage(df, feature_col, test_size=0.2, random_state=42):
-    # Step 1: Flatten the feature into individual values with index mapping
-    '''
-    value_to_index = {}
-    
-    for idx, row in df.iterrows():
-        for val in row[feature_col]:
-            if val not in value_to_index:
-                value_to_index[val] = idx  # only keep the first one
-    '''
-    # Step 2: Get the unique examples
+
+    # Step 1: Get the unique examples
     coverage_indices = list(df[feature_col])
     df_covered = df.loc[coverage_indices]
 
-    # Step 3: Get the rest of the data
+    # Step 2: Get the rest of the data
     df_remaining = df.drop(coverage_indices)
 
-    # Step 4: Randomly split the remaining data
+    # Step 3: Randomly split the remaining data
     df_train_rest, df_test = train_test_split(df_remaining, test_size=test_size, random_state=random_state)
 
-    # Step 5: Combine guaranteed-coverage with train split
+    # Step 4: Combine guaranteed-coverage with train split
     df_train = pd.concat([df_covered, df_train_rest]).reset_index(drop=True)
     df_test = df_test.reset_index(drop=True)
 
@@ -105,14 +103,22 @@ textless['keyword_vector'] = textless['keyword_vector'].map(keyword_dict)
 
 color_id_train, color_id_test = split_for_feature_coverage(textless,'color_identity',test_size=.2)
 
-color_id_target = color_id_train['color_identity']
-color_id_train.drop('color_identity',axis=1)
+color_id_train_target = color_id_train['color_identity']
+color_id_test_target = color_id_test['color_identity']
 
+color_id_train=color_id_train.drop('color_identity',axis=1)
+color_id_test=color_id_test.drop('color_identity',axis=1)
 
-print(color_id_target)
 
 
 model = XGBClassifier(enable_categorical=True)
 
 #print(color_id_train.loc[:, color_id_train.columns != 'color_identity'])
-model.fit(color_id_train,color_id_target)
+model.fit(color_id_train,color_id_train_target)
+
+
+prob_predictions = model.predict_proba(color_id_test)
+
+print(max(prob_predictions[0]))
+loss = log_loss(color_id_test_target.values,prob_predictions, labels=model.classes_)
+print(f"Loss: {loss}")
