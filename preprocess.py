@@ -1,7 +1,6 @@
 import os
 import json
 import pandas as pd
-from xgboost import XGBClassifier, XGBRegressor
 import re
 import pickle
 
