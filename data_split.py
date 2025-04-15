@@ -60,7 +60,6 @@ print("Description of Data:")
 print(card_dataframe['power_value'].describe())
 
 '''
-# Split the data in such a way that we get at least one example of all possible classes 
 def split_for_feature_coverage(df, feature_col, test_size=0.2, random_state=42):
 
     # Step 1: Get the unique examples
@@ -78,7 +77,6 @@ def split_for_feature_coverage(df, feature_col, test_size=0.2, random_state=42):
     df_test = df_test.reset_index(drop=True)
 
     return df_train, df_test
-
 # We want classification to be agnostic to the name and text
 textless = card_dataframe.loc[:, (card_dataframe.columns != 'name')]
 textless = textless.loc[:, (textless.columns != 'rules_text')]
@@ -129,8 +127,8 @@ subtype_test = subtype_test.drop('subtype_vector',axis=1)
 
 mana_train, mana_test = split_for_feature_coverage(textless,'mana_vector',test_size=.2)
 
-mana_train_target = color_id_train['mana_vector']
-mana_test_target = color_id_test['mana_vector']
+mana_train_target = mana_train['mana_vector']
+mana_test_target = mana_test['mana_vector']
 mana_train = mana_train.drop('mana_vector',axis=1)
 mana_test = mana_test.drop('mana_vector',axis=1)
 
@@ -143,47 +141,50 @@ keyword_train = keyword_train.drop('keyword_vector',axis=1)
 keyword_test = keyword_test.drop('keyword_vector',axis=1)
 
 
-power_train, power_test = split_for_feature_coverage(textless,'power_value',test_size=.2)
+power_train, power_test = split_for_feature_coverage(textless,'power_value',test_size=.2,nan_class_value=1000)
 
-power_train_target = power_train['power_value']
-power_test_target = power_test['power_value']
+power_train_target = power_train['power_value'].astype(int)
+power_test_target = power_test['power_value'].astype(int)
 power_train = power_train.drop('power_value',axis=1)
 power_test = power_test.drop('power_value',axis=1)
 
 
-toughness_train, toughness_test = split_for_feature_coverage(textless,'toughness_value',test_size=.2)
+toughness_train, toughness_test = split_for_feature_coverage(textless,'toughness_value',test_size=.2,nan_class_value=1000)
 
-toughness_train_target = power_train['toughness_value']
-toughness_test_target = power_test['toughness_value']
-toughness_train = power_train.drop('toughness_value',axis=1)
-toughness_test = power_test.drop('toughness_value',axis=1)
+toughness_train_target = toughness_train['toughness_value'].astype(int)
+toughness_test_target = toughness_test['toughness_value'].astype(int)
+toughness_train = toughness_train.drop('toughness_value',axis=1)
+toughness_test = toughness_test.drop('toughness_value',axis=1)
 
 
+'''
 # Train each model using the split data
 color_id_model = XGBClassifier(enable_categorical=True)
 color_id_model.fit(color_id_train,color_id_train_target)
-
+print("1")
 mana_model = XGBClassifier(enable_categorical=True)
 mana_model.fit(mana_train,mana_train_target)
-
+print("2")
 type_model = XGBClassifier(enable_categorical=True)
 type_model.fit(type_train,type_train_target)
-
+print("3")
 subtype_model = XGBClassifier(enable_categorical=True)
 subtype_model.fit(subtype_train,subtype_train_target)
-
+print("4")
 keyword_model = XGBClassifier(enable_categorical=True)
 keyword_model.fit(keyword_train,keyword_train_target)
+print("5")
 
+'''
 power_model = XGBClassifier(enable_categorical=True)
 power_model.fit(power_train,power_train_target)
-
+print("6")
 toughness_model = XGBClassifier(enable_categorical=True)
 toughness_model.fit(toughness_train,toughness_train_target)
+print("7")
 
-
-prob_predictions = mana_model.predict_proba(mana_test)
+prob_predictions = power_model.predict_proba(mana_test)
 
 print(max(prob_predictions[0]))
-loss = log_loss(color_id_test_target.values,prob_predictions, labels=color_id_model.classes_)
+loss = log_loss(power_model.values,prob_predictions, labels=power_model.classes_)
 print(f"Loss: {loss}")
