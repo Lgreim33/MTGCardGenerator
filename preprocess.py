@@ -53,6 +53,9 @@ def get_power_symbols():
 
     dict = {element: index for index, element in enumerate(powers)}
 
+    # Add the lack of power to the end of the dict
+    dict.update({'None': len(dict.values())})
+    
     # Save the dictionary
     with open(r"Dictionaries\PowerSymbolDict.pickle", "wb") as file:
         pickle.dump(dict, file)
@@ -65,7 +68,9 @@ def get_toughness_symbols():
     toughness = data['data']
 
     dict = {element: index for index, element in enumerate(toughness)}
-
+    print(dict)
+    # Add the lack of toughness to the end of the dict
+    dict.update({'None': len(dict.values())})
     # Save the dictionary
     with open(r"Dictionaries\ToughnessSymbolDict.pickle", "wb") as file:
         pickle.dump(dict, file)
@@ -180,12 +185,12 @@ def pre_process(card_list):
             try:
                 power_value = powers_dict[card['power']]
             except KeyError:
-                power_value = None
+                power_value = max(powers_dict.values())
 
             try:
                 toughness_value = toughness_dict[card['toughness']]
             except KeyError:
-                toughness_value = None
+                toughness_value = max(toughness_dict.values())
 
 
             # Append all processed values (as tuples for hashability)
