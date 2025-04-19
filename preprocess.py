@@ -51,7 +51,17 @@ def get_power_symbols():
     data = json.load(fp)
     powers = data['data']
 
+    # Just drop these values, most of them either dont show up or belong to an invalid card type
+    powers.remove('14')
+    powers.remove('17')
+    powers.remove('20')
+    powers.remove('99')
+    powers.remove('*+1')
+    powers.remove('-0')
+    powers.remove('7-*')
+
     dict = {element: index for index, element in enumerate(powers)}
+
 
     # Add the lack of power to the end of the dict
     dict.update({'None': len(dict.values())})
@@ -61,14 +71,16 @@ def get_power_symbols():
         pickle.dump(dict, file)
 
     return dict
+
+
 # Get all possible toughness symbols and save them in a Dictionary, returns the dict
 def get_toughness_symbols():
     fp = open("Data\ToughnessSymbols.json")
     data = json.load(fp)
     toughness = data['data']
-
+    toughness.remove('99')
     dict = {element: index for index, element in enumerate(toughness)}
-    print(dict)
+    
     # Add the lack of toughness to the end of the dict
     dict.update({'None': len(dict.values())})
     # Save the dictionary
@@ -297,7 +309,6 @@ card_dataframe = pre_process(card_dataset.values())
 
 print(card_dataframe.head(5))
 
-print(card_dataframe['type_vector'].value_counts())
 
 # Save the dataframe
 card_dataframe.to_pickle('card_dataframe.pkl')

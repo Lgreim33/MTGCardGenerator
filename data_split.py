@@ -2,8 +2,7 @@ import pickle
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import log_loss
-from xgboost import XGBClassifier, XGBModel, DMatrix
+
 
 
 # Read the stored data file
@@ -63,11 +62,13 @@ print(card_dataframe['power_value'].describe())
 def split_for_feature_coverage(df, feature_col, test_size=0.2, random_state=42):
 
     # Step 1: Get the unique examples
-    coverage_indices = list(df[feature_col])
+    coverage_indices = df.groupby(feature_col).apply(lambda x: x.sample(1, random_state=random_state)).index.get_level_values(1)
     df_covered = df.loc[coverage_indices]
 
+    print(df_covered.value_counts())
     # Step 2: Get the rest of the data
     df_remaining = df.drop(coverage_indices)
+
 
     # Step 3: Randomly split the remaining data
     df_train_rest, df_test = train_test_split(df_remaining, test_size=test_size, random_state=random_state)
@@ -75,6 +76,7 @@ def split_for_feature_coverage(df, feature_col, test_size=0.2, random_state=42):
     # Step 4: Combine guaranteed-coverage with train split
     df_train = pd.concat([df_covered, df_train_rest]).reset_index(drop=True)
     df_test = df_test.reset_index(drop=True)
+    
 
     return df_train, df_test
 # We want classification to be agnostic to the name and text
@@ -107,6 +109,13 @@ color_id_train=color_id_train.drop('color_identity',axis=1)
 color_id_test=color_id_test.drop('color_identity',axis=1)
 
 
+
+color_id_test.to_pickle("SplitData/Color_ID/color_id_test.pkl")
+color_id_train_target.to_pickle("SplitData/Color_ID/color_id_train_target.pkl")
+color_id_test_target.to_pickle("SplitData/Color_ID/color_id_test_target.pkl")
+color_id_train.to_pickle("SplitData/Color_ID/color_id_train.pkl")
+
+
 # Type training split
 type_train, type_test = split_for_feature_coverage(textless,'type_vector',test_size=.2)
 
@@ -115,6 +124,24 @@ type_test_target = type_test['type_vector']
 type_train = type_train.drop('type_vector',axis=1)
 type_test = type_test.drop('type_vector',axis=1)
 
+type_test.to_pickle("SplitData/Type/type_test.pkl")
+type_train_target.to_pickle("SplitData/Type/type_train_target.pkl")
+type_test_target.to_pickle("SplitData/Type/type_test_target.pkl")
+type_train.to_pickle("SplitData/Type/type_train.pkl")
+
+
+# Supertype split
+supertype_train, supertype_test = split_for_feature_coverage(textless,'supertype_value',test_size=.2)
+
+supertype_train_target = supertype_train['supertype_value']
+supertype_test_target = supertype_test['supertype_value']
+supertype_train = supertype_train.drop('supertype_value',axis=1)
+supertype_test = supertype_test.drop('supertype_value',axis=1)
+
+supertype_test.to_pickle("SplitData/Supertype/supertype_test.pkl")
+supertype_train_target.to_pickle("SplitData/Supertype/supertype_train_target.pkl")
+supertype_test_target.to_pickle("SplitData/Supertype/supertype_test_target.pkl")
+supertype_train.to_pickle("SplitData/Supertype/supertype_train.pkl")
 
 # Subtype training split
 subtype_train, subtype_test = split_for_feature_coverage(textless,'subtype_vector',test_size=.2)
@@ -124,6 +151,10 @@ subtype_test_target = subtype_test['subtype_vector']
 subtype_train = subtype_train.drop('subtype_vector',axis=1)
 subtype_test = subtype_test.drop('subtype_vector',axis=1)
 
+subtype_test.to_pickle("SplitData/Subtype/subtype_test.pkl")
+subtype_train_target.to_pickle("SplitData/Subtype/subtype_train_target.pkl")
+subtype_test_target.to_pickle("SplitData/Subtype/subtype_test_target.pkl")
+subtype_train.to_pickle("SplitData/Subtype/subtype_train.pkl")
 
 mana_train, mana_test = split_for_feature_coverage(textless,'mana_vector',test_size=.2)
 
@@ -131,6 +162,11 @@ mana_train_target = mana_train['mana_vector']
 mana_test_target = mana_test['mana_vector']
 mana_train = mana_train.drop('mana_vector',axis=1)
 mana_test = mana_test.drop('mana_vector',axis=1)
+
+mana_test.to_pickle("SplitData/Mana/mana_test.pkl")
+type_train_target.to_pickle("SplitData/Mana/mana_train_target.pkl")
+type_test_target.to_pickle("SplitData/Mana/mana_test_target.pkl")
+type_train.to_pickle("SplitData/Mana/mana_train.pkl")
 
 
 keyword_train, keyword_test = split_for_feature_coverage(textless,'keyword_vector',test_size=.2)
@@ -140,51 +176,34 @@ keyword_test_target = keyword_test['keyword_vector']
 keyword_train = keyword_train.drop('keyword_vector',axis=1)
 keyword_test = keyword_test.drop('keyword_vector',axis=1)
 
+keyword_test.to_pickle("SplitData/Keywords/keyword_test.pkl")
+keyword_train_target.to_pickle("SplitData/Keywords/keyword_train_target.pkl")
+keyword_test_target.to_pickle("SplitData/Keywords/keyword_test_target.pkl")
+keyword_train.to_pickle("SplitData/Keywords/keyword_train.pkl")
 
-power_train, power_test = split_for_feature_coverage(textless,'power_value',test_size=.2,nan_class_value=1000)
+power_train, power_test = split_for_feature_coverage(textless,'power_value',test_size=.2)
 
+print(set(power_train['power_value']))
 power_train_target = power_train['power_value'].astype(int)
+print(set(power_train_target))
 power_test_target = power_test['power_value'].astype(int)
 power_train = power_train.drop('power_value',axis=1)
 power_test = power_test.drop('power_value',axis=1)
 
+power_test.to_pickle("SplitData/Power/power_test.pkl")
+power_train_target.to_pickle("SplitData/Power/power_train_target.pkl")
+power_test_target.to_pickle("SplitData/Power/power_test_target.pkl")
+power_train.to_pickle("SplitData/Power/power_train.pkl")
 
-toughness_train, toughness_test = split_for_feature_coverage(textless,'toughness_value',test_size=.2,nan_class_value=1000)
+
+toughness_train, toughness_test = split_for_feature_coverage(textless,'toughness_value',test_size=.2)
 
 toughness_train_target = toughness_train['toughness_value'].astype(int)
 toughness_test_target = toughness_test['toughness_value'].astype(int)
 toughness_train = toughness_train.drop('toughness_value',axis=1)
 toughness_test = toughness_test.drop('toughness_value',axis=1)
 
-
-'''
-# Train each model using the split data
-color_id_model = XGBClassifier(enable_categorical=True)
-color_id_model.fit(color_id_train,color_id_train_target)
-print("1")
-mana_model = XGBClassifier(enable_categorical=True)
-mana_model.fit(mana_train,mana_train_target)
-print("2")
-type_model = XGBClassifier(enable_categorical=True)
-type_model.fit(type_train,type_train_target)
-print("3")
-subtype_model = XGBClassifier(enable_categorical=True)
-subtype_model.fit(subtype_train,subtype_train_target)
-print("4")
-keyword_model = XGBClassifier(enable_categorical=True)
-keyword_model.fit(keyword_train,keyword_train_target)
-print("5")
-
-'''
-power_model = XGBClassifier(enable_categorical=True)
-power_model.fit(power_train,power_train_target)
-print("6")
-toughness_model = XGBClassifier(enable_categorical=True)
-toughness_model.fit(toughness_train,toughness_train_target)
-print("7")
-
-prob_predictions = power_model.predict_proba(mana_test)
-
-print(max(prob_predictions[0]))
-loss = log_loss(power_model.values,prob_predictions, labels=power_model.classes_)
-print(f"Loss: {loss}")
+toughness_test.to_pickle("SplitData/Toughness/toughness_test.pkl")
+toughness_train_target.to_pickle("SplitData/Toughness/toughness_train_target.pkl")
+toughness_test_target.to_pickle("SplitData/Toughness/toughness_test_target.pkl")
+toughness_train.to_pickle("SplitData/Toughness/toughness_train.pkl")
