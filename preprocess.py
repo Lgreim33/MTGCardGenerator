@@ -19,7 +19,7 @@ def get_mana_symbols():
         if symbol["represents_mana"]
     ]
 
-    dict = {element: index for index, element in enumerate(valid_mana_symbols)}
+    dict = {element: index+1 for index, element in enumerate(valid_mana_symbols)}
 
     # Save dictionary
     with open(r"Dictionaries\ManaSymbolDict.pickle", "wb") as file:
@@ -37,7 +37,7 @@ def get_keywords():
     data_aw = json.load(fp_aw)
     keywords = data_ab['data'] + data_ac['data'] + data_aw['data']
 
-    dict = {element: index for index, element in enumerate(keywords)}
+    dict = {element: index+1 for index, element in enumerate(keywords)}
 
     # save the dictionary
     with open(r"Dictionaries\KeywordDict.pickle", "wb") as file:
@@ -51,7 +51,17 @@ def get_power_symbols():
     data = json.load(fp)
     powers = data['data']
 
+    # Just drop these values, most of them either dont show up or belong to an invalid card type
+    powers.remove('14')
+    powers.remove('17')
+    powers.remove('20')
+    powers.remove('99')
+    powers.remove('*+1')
+    powers.remove('-0')
+    powers.remove('7-*')
+
     dict = {element: index for index, element in enumerate(powers)}
+
 
     # Add the lack of power to the end of the dict
     dict.update({'None': len(dict.values())})
@@ -61,14 +71,16 @@ def get_power_symbols():
         pickle.dump(dict, file)
 
     return dict
+
+
 # Get all possible toughness symbols and save them in a Dictionary, returns the dict
 def get_toughness_symbols():
     fp = open("Data\ToughnessSymbols.json")
     data = json.load(fp)
     toughness = data['data']
-
+    toughness.remove('99')
     dict = {element: index for index, element in enumerate(toughness)}
-    print(dict)
+    
     # Add the lack of toughness to the end of the dict
     dict.update({'None': len(dict.values())})
     # Save the dictionary
@@ -91,7 +103,7 @@ def all_subtypes():
         except KeyError:
             continue
 
-    dict = {element: index for index, element in enumerate(subtypes)}
+    dict = {element: index+1 for index, element in enumerate(subtypes)}
 
     # Save the dictionary
     with open(r"Dictionaries\SubtypeDict.pickle", "wb") as file:
@@ -108,8 +120,8 @@ def pre_process(card_list):
     keywords_dict = get_keywords()
     
     # Dictionary where the type matches the index at which the type can be represented by a one
-    desired_types = {'Enchantment':0, 'Artifact':1, 'Creature':2, 'Instant':3, 'Sorcery':4, 'Kindred':5}
-    color_identity_dict = {'W':0, 'U':1, 'B':2, 'R':3, 'G':4}
+    desired_types = {'Enchantment':1, 'Artifact':2, 'Creature':3, 'Instant':4, 'Sorcery':5, 'Kindred':6}
+    color_identity_dict = {'W':1, 'U':2, 'B':3, 'R':4, 'G':5}
 
     with open(r"Dictionaries\TypeDict.pickle", "wb") as file:
         pickle.dump(desired_types, file)
@@ -138,7 +150,7 @@ def pre_process(card_list):
         keyword_vector = []
         power_value = None
         toughness_value = None
-        color_id_vec = [0 for _ in range(5)]
+        color_id_vec = []
         supertype_value = None  # Initialize supertype_value to None
 
         try:
@@ -177,7 +189,7 @@ def pre_process(card_list):
             # Process color identity (optional field, so no need to handle exception)
             for color in card['color_identity']:
                 try:
-                    color_id_vec[color_identity_dict[color]] = 1
+                    color_id_vec.append(color_identity_dict[color])
                 except KeyError:
                     continue
 
@@ -210,6 +222,7 @@ def pre_process(card_list):
             print(f"Skipping card {card.get('name', '<unknown>')} due to error: {e}")
             continue
 
+    
     # Padding function — returns tuple for hashability
     def pad_features(features, max_len):
         return [tuple(f + (0,) * (max_len - len(f))) if len(f) < max_len else tuple(f[:max_len]) for f in features]
@@ -219,18 +232,32 @@ def pre_process(card_list):
     max_subtype_len = max(len(v) for v in all_subtype_vectors)
     max_mana_len = max(len(v) for v in all_mana_vectors)
     max_keyword_len = max(len(v) for v in all_keyword_vectors)
+    max_color_id_len = max(len(v) for v in all_color_id_vecs)
+    
+    # Save the max lengths so we can grab them later
+    max_lengths = {
+    'type_vector': max(len(v) for v in all_type_vectors),
+    'subtype_vector': max(len(v) for v in all_subtype_vectors),
+    'mana_vector': max(len(v) for v in all_mana_vectors),
+    'keyword_vector': max(len(v) for v in all_keyword_vectors),
+    'color_identity': max(len(v) for v in all_color_id_vecs)
+    }
+    with open('max_vector_lengths.json', 'w') as f:
+        json.dump(max_lengths, f, indent=2)
 
+    # Pad with zeros to make them a uniform length
     padded_type_vectors = pad_features(all_type_vectors, max_type_len)
     padded_subtype_vectors = pad_features(all_subtype_vectors, max_subtype_len)
     padded_mana_vectors = pad_features(all_mana_vectors, max_mana_len)
     padded_keyword_vectors = pad_features(all_keyword_vectors, max_keyword_len)
-    
+    padded_color_id_vecs = pad_features(all_color_id_vecs, max_color_id_len)
+        
     # Create a DataFrame from the processed data
     df = pd.DataFrame({
         'name': all_names,
         'type_vector': tuple(padded_type_vectors),
         'subtype_vector': padded_subtype_vectors,
-        'color_identity': all_color_id_vecs,
+        'color_identity': padded_color_id_vecs,
         'mana_vector': padded_mana_vectors,
         'keyword_vector': padded_keyword_vectors,
         'power_value': all_power_values,
@@ -273,6 +300,7 @@ for card in file:
         # Split the type_line into Legendary, Types, and Subtypes
         legendary, types, subtypes = split_type_line(card['type_line'])
         
+        # // indicates a double sided card, filter out uncommon types
         if set(types).issubset(set(desired_types)) and "//" not in card['name']:
 
             # Add to the dataset
@@ -287,17 +315,10 @@ for card in file:
 # Print Size of dataset
 print(len(card_dataset))
 
-# Test
+# Test on sample to ensure data looks correct
 print(card_dataset['All Will Be One'])
-
-
 card_dataframe = pre_process(card_dataset.values())
-
-
-
-print(card_dataframe.head(5))
-
-print(card_dataframe['type_vector'].value_counts())
+print(card_dataframe[card_dataframe['name'] == 'All Will Be One'])
 
 # Save the dataframe
 card_dataframe.to_pickle('card_dataframe.pkl')

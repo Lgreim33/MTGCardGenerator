@@ -1,6 +1,7 @@
 import requests
 import json
 
+# features to get
 features = ['card-types', 'artifact-types', 'creature-types','enchantment-types','spell-types','supertypes','keyword-abilities' ,'keyword-actions','ability-words']
 data_dict = {}
 
